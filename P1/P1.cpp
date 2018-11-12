@@ -42,6 +42,42 @@ void write_to_mapped_file(int a, int b) {
 	
 }
 
+void write_to_mapped_file_event(int a, int b) {
+	HANDLE writing_event = CreateEvent(NULL, FALSE, FALSE, "writing_event");
+	if (writing_event == NULL)
+		printf("P1: Nu s-a putut crea event de scriere: %d.\n", GetLastError());
+	else
+		printf("P1: Eventul de scriere a fost creat.\n");
+
+	HANDLE reading_event = CreateEvent(NULL, FALSE, FALSE, "reading_event");
+	if (reading_event == NULL)
+		printf("P1: Nu s-a putut crea event de citire: %d.\n", GetLastError());
+	else
+		printf("P1: Eventul de citire a fost creat.\n");
+	
+	printf("P1: Scriu a\n");
+	memcpy(pData, &a, sizeof(int));
+	if (SetEvent(writing_event) == 0)
+		printf("P1: Nu s-a putut seta eventul de scriere pentru a: %d\n", GetLastError());
+	else
+		printf("P1: S-a setat eventul de scriere pentru a\n");
+
+	WaitForSingleObject(reading_event, INFINITE);
+	printf("P1: Scriu b\n");
+	memcpy(pData, &b, sizeof(int));
+	if (SetEvent(writing_event) == 0)
+		printf("P1: Nu s-a putut seta eventul de scriere pentru b: %d\n", GetLastError());
+	else
+		printf("P1: S-a setat eventul de scriere pentru b\n");
+	ResetEvent(reading_event);
+
+	WaitForSingleObject(reading_event, INFINITE);
+
+	CloseHandle(writing_event);
+	CloseHandle(reading_event);
+
+}
+
 void start_process(char *process_name)
 {
 	bool created;
@@ -67,17 +103,25 @@ void create_random_numbers()
 	srand(time(NULL));   // Initialization, should only be called once.
 	int a = rand();
 	int b = 2 * a;
-	printf("a: %d b: %d\n", a, b);
-	write_to_mapped_file(a,b);
+	printf("P1: a: %d b: %d\n", a, b);
+	write_to_mapped_file_event(a,b);
 }
 
 
+void use_events() {
+	for (int i = 0; i < 200; i++)
+		create_random_numbers();
+}
 
 int main()
 {
 	create_mapped_file();
 	start_process("\"C:\\Users\\Marian Gafitescu\\Desktop\\CSSO\\Tema5-6CSSO\\P2\\Debug\\P2.exe\"");
-	create_random_numbers();
+	
+	use_events();
+
+	CloseHandle(hData);
 	getchar();
+
 	return 0;
 }
