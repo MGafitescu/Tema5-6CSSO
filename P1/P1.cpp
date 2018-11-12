@@ -8,6 +8,8 @@
 
 using namespace std;
 HANDLE hData;
+HANDLE writing_event;
+HANDLE reading_event;
 unsigned char* pData;
 
 
@@ -27,54 +29,37 @@ int create_mapped_file() {
 
 }
 
-void write_to_mapped_file(int a, int b) {
-	
-	HANDLE hMutex = CreateMutex(NULL, TRUE, "mutex_numere");
-	printf("Scriu a\n");
-	memcpy(pData, &a, sizeof(int));
-	ReleaseMutex(hMutex);
+void createEvents() {
+	writing_event = CreateEvent(NULL, FALSE, FALSE, "writing_event");
+	if (writing_event == NULL)
+		printf("P1: Nu s-a putut crea event de scriere: %d.\n", GetLastError());
 
-	WaitForSingleObject(hMutex, INFINITE);
-	printf("Scriu b\n");
-	memcpy(pData, &b, sizeof(int));
-	ReleaseMutex(hMutex);
-	CloseHandle(hMutex);
-	
+	reading_event = CreateEvent(NULL, FALSE, FALSE, "reading_event");
+	if (reading_event == NULL)
+		printf("P1: Nu s-a putut crea event de citire: %d.\n", GetLastError());
+}
+
+
+void closeEvents() {
+	CloseHandle(writing_event);
+	CloseHandle(reading_event);
 }
 
 void write_to_mapped_file_event(int a, int b) {
-	HANDLE writing_event = CreateEvent(NULL, FALSE, FALSE, "writing_event");
-	if (writing_event == NULL)
-		printf("P1: Nu s-a putut crea event de scriere: %d.\n", GetLastError());
-	else
-		printf("P1: Eventul de scriere a fost creat.\n");
-
-	HANDLE reading_event = CreateEvent(NULL, FALSE, FALSE, "reading_event");
-	if (reading_event == NULL)
-		printf("P1: Nu s-a putut crea event de citire: %d.\n", GetLastError());
-	else
-		printf("P1: Eventul de citire a fost creat.\n");
-	
-	printf("P1: Scriu a\n");
 	memcpy(pData, &a, sizeof(int));
 	if (SetEvent(writing_event) == 0)
 		printf("P1: Nu s-a putut seta eventul de scriere pentru a: %d\n", GetLastError());
-	else
-		printf("P1: S-a setat eventul de scriere pentru a\n");
 
 	WaitForSingleObject(reading_event, INFINITE);
-	printf("P1: Scriu b\n");
+	
 	memcpy(pData, &b, sizeof(int));
 	if (SetEvent(writing_event) == 0)
 		printf("P1: Nu s-a putut seta eventul de scriere pentru b: %d\n", GetLastError());
-	else
-		printf("P1: S-a setat eventul de scriere pentru b\n");
+	
 	ResetEvent(reading_event);
 
 	WaitForSingleObject(reading_event, INFINITE);
 
-	CloseHandle(writing_event);
-	CloseHandle(reading_event);
 
 }
 
@@ -98,19 +83,22 @@ void start_process(char *process_name)
 	CloseHandle(infos.hThread);
 }
 
-void create_random_numbers()
-{
-	srand(time(NULL));   // Initialization, should only be called once.
+void create_random_numbers(int i)
+{ 
 	int a = rand();
 	int b = 2 * a;
-	printf("P1: a: %d b: %d\n", a, b);
+	printf("P1: Perechea %d a: %d b: %d\n",i, a, b);
 	write_to_mapped_file_event(a,b);
 }
 
 
 void use_events() {
-	for (int i = 0; i < 200; i++)
-		create_random_numbers();
+	srand(time(NULL));
+	createEvents();
+	for (int i = 0; i < 200; i++) 
+		create_random_numbers(i);
+	closeEvents();
+
 }
 
 int main()
