@@ -53,10 +53,11 @@ void write_to_mapped_file_event(int a, int b) {
 	WaitForSingleObject(reading_event, INFINITE);
 	
 	memcpy(pData, &b, sizeof(int));
+	ResetEvent(reading_event);
 	if (SetEvent(writing_event) == 0)
 		printf("P1: Nu s-a putut seta eventul de scriere pentru b: %d\n", GetLastError());
 	
-	ResetEvent(reading_event);
+	
 
 	WaitForSingleObject(reading_event, INFINITE);
 
@@ -95,7 +96,7 @@ void create_random_numbers(int i)
 void use_events() {
 	srand(time(NULL));
 	createEvents();
-	for (int i = 0; i < 200; i++) 
+	for (int i = 0; i < 201; i++) 
 		create_random_numbers(i);
 	closeEvents();
 

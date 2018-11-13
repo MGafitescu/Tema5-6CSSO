@@ -77,7 +77,7 @@ void read_from_mapped_file_event(int i) {
 
 void use_events() {
 	openEvents();
-	for (int i = 0; i < 200; i++) 
+	for (int i = 0; i < 201; i++) 
 		read_from_mapped_file_event(i);
 	closeEvents();
 }
